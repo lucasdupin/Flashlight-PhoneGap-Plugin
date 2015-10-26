@@ -78,6 +78,12 @@ function exitApp() {
 }
 ```
 
+Another hint for `Android developers`: if you are blinking your flashlight, you'll want to turn the flash off without deactivating the camera, otherwise you'll experience a delay:
+```javascript
+window.plugins.flashlight.switchOff(null, null, true);
+```
+But don't forget to turn it off properly before exiting your app
+
 ## 4. CREDITS ##
 * This plugin was streamlined and enhanced for Plugman / PhoneGap Build by [Eddy Verbruggen](http://www.x-services.nl).
 * The Android code was inspired by the [PhoneGap Torch plugin](https://github.com/phonegap/phonegap-plugins/tree/DEPRECATED/Android/Torch).

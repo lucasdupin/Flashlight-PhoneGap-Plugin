@@ -11,14 +11,14 @@ Flashlight.prototype = {
     }, null, "Flashlight", "available", []);
   },
 
-  switchOn: function (successCallback, errorCallback, soft) {
+  switchOn: function (successCallback, errorCallback) {
     this._isSwitchedOn = true;
-    cordova.exec(successCallback, errorCallback, "Flashlight", "switchOn", [soft]);
+    cordova.exec(successCallback, errorCallback, "Flashlight", "switchOn", []);
   },
 
-  switchOff: function (successCallback, errorCallback) {
+  switchOff: function (successCallback, errorCallback, soft) {
     this._isSwitchedOn = false;
-    cordova.exec(successCallback, errorCallback, "Flashlight", "switchOff", []);
+    cordova.exec(successCallback, errorCallback, "Flashlight", "switchOff", [soft]);
   },
 
   toggle: function (successCallback, errorCallback) {
