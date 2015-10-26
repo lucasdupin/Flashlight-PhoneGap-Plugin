@@ -10,6 +10,7 @@ import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
 import org.json.JSONArray;
 import org.json.JSONException;
+import java.io.IOException;
 
 public class Flashlight extends CordovaPlugin {
 
@@ -18,7 +19,6 @@ public class Flashlight extends CordovaPlugin {
   private static final String ACTION_SWITCH_OFF = "switchOff";
 
   private static Boolean capable;
-  private boolean releasing;
   private Camera mCamera;
 
   @Override
@@ -28,19 +28,29 @@ public class Flashlight extends CordovaPlugin {
       if (action.equals(ACTION_SWITCH_ON)) {
         // When switching on immediately after checking for isAvailable,
         // the release method may still be running, so wait a bit.
-        while (releasing) {
-          Thread.sleep(10);
-        }
-        mCamera = Camera.open();
-        if (Build.VERSION.SDK_INT >= 11) { // honeycomb
-          // required for (at least) the Nexus 5
-          mCamera.setPreviewTexture(new SurfaceTexture(0));
+        if (mCamera == null) {
+          mCamera = Camera.open();
+          try {
+            //mCamera.setPreviewTexture(new SurfaceTexture(0));
+            mCamera.setPreviewDisplay(null);
+          } catch (IOException e) {
+            e.printStackTrace();
+          }
+          mCamera.startPreview();
         }
         toggleTorch(true, callbackContext);
         return true;
       } else if (action.equals(ACTION_SWITCH_OFF)) {
         toggleTorch(false, callbackContext);
-        releaseCamera();
+        boolean soft;
+        try {
+          soft = args.length() > 0 && args.getBoolean(0);
+        } catch (JSONException ex) {
+          soft = false;
+        }
+        if (!soft) {
+          releaseCamera();
+        }
         return true;
       } else if (action.equals(ACTION_AVAILABLE)) {
         if (capable == null) {
@@ -73,9 +83,15 @@ public class Flashlight extends CordovaPlugin {
   private void toggleTorch(boolean switchOn, CallbackContext callbackContext) {
     final Camera.Parameters mParameters = mCamera.getParameters();
     if (isCapable()) {
-      mParameters.setFlashMode(switchOn ? Camera.Parameters.FLASH_MODE_TORCH : Camera.Parameters.FLASH_MODE_OFF);
-      mCamera.setParameters(mParameters);
-      mCamera.startPreview();
+      if (switchOn) {
+        mParameters.setFlashMode(Camera.Parameters.FLASH_MODE_TORCH);
+        mCamera.setParameters(mParameters);
+      } else {
+        if (mParameters.getFlashMode().equals(Camera.Parameters.FLASH_MODE_TORCH)) {
+          mParameters.setFlashMode(Camera.Parameters.FLASH_MODE_OFF);
+          mCamera.setParameters(mParameters);
+        }
+      }
       callbackContext.success();
     } else {
       callbackContext.error("Device is not capable of using the flashlight. Please test with flashlight.available()");
@@ -83,15 +99,11 @@ public class Flashlight extends CordovaPlugin {
   }
 
   private void releaseCamera() {
-    releasing = true;
     // we need to release the camera, so other apps can use it
-    new Thread(new Runnable() {
-      public void run() {
-        mCamera.setPreviewCallback(null);
-        mCamera.stopPreview();
-        mCamera.release();
-        releasing = false;
-      }
-    }).start();
+    mCamera.setPreviewCallback(null);
+    mCamera.stopPreview();
+    mCamera.release();
+    mCamera = null;
   }
 }
+
